@@ -1,0 +1,47 @@
+html
+  head
+    link(href='https://vjs.zencdn.net/7.10.2/video-js.min.css' rel='stylesheet')
+    script(src='https://vjs.zencdn.net/7.10.2/video.min.js')
+    link(href='https://unpkg.com/@videojs/themes@1/dist/forest/index.css' rel='stylesheet')
+    script(src='https://cdn.socket.io/4.0.1/socket.io.min.js' integrity='sha384-LzhRnpGmQP+lOvWruF/lgkcqD+WDVt9fU3H4BWmwP5u5LTmkUGafMcpZKNObVMLU' crossorigin='anonymous')
+    title SyncVideo
+    link(rel='stylesheet' href='/styles.css' type='text/css')
+    link(rel="icon" type="image/svg+xml" href="/favicon.svg")
+  body(style='background: linear-gradient(45deg, #395ECA, #848BD8);')
+    img.logo(src="/logo.svg" alt="SyncVideo")
+    .view
+      video#syncplayer.video-js.vjs-theme-forest.player(controls='' preload='auto' width='640' height='264' data-setup='{}')
+    .btnDiv(class="slide-in")
+      a(href="/exit")
+        input.button(type='button' value='Exit' style="cursor:pointer")
+    script.
+      const roomId = window.location.href.split("/").pop();
+      const socket = io("#{socketIP}:" + #{socketPort}, {
+      query: {
+      roomUuid: roomId
+      }
+      });
+      var player = videojs('syncplayer');
+      socket.on("state", (state) => {
+      if (player.currentSrc() != state.src) {
+      state.src.includes("youtube") ? changeSrcYT(state.src) : changeSrc(state.src);
+      }
+      if (state.paused != player.paused()) {
+      state.paused ? player.pause() : player.play();
+      }
+      var difference = Math.abs(player.currentTime() - state.currentTime);
+      if (difference < 5) {
+      player.playbackRate(parseFloat(1 + difference / 50));
+      } else {
+      player.currentTime(state.currentTime);
+      }
+      })
+      function changeSrc(path) {
+      player.src({ type: 'video/mp4', src: path });
+      return;
+      }
+      function changeSrcYT(link) {
+      player.src({ type: 'video/youtube', src: link });
+      return;
+      }
+    script(src='/Youtube.min.js')

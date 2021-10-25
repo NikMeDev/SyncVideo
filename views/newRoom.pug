@@ -1,0 +1,24 @@
+doctype html
+html(lang='en')
+  head
+    meta(charset='UTF-8')
+    meta(http-equiv='X-UA-Compatible' content='IE=edge')
+    meta(name='viewport' content='width=device-width, initial-scale=1.0')
+    title SyncVideo
+    link(rel='stylesheet' href='/styles.css' type='text/css')
+    link(rel="icon" type="image/svg+xml" href="/favicon.svg")
+  body(style='background: linear-gradient(45deg, #395ECA, #848BD8);')
+    img.logo(src="/logo.svg" alt="SyncVideo")
+    .crNewRoom(class="slide-in")
+      h2.text Create new room
+      form(style='text-align: center;' action='/api/newRoom' method='post')
+        input.button(type='submit' value='Create' style='cursor: pointer; font-size: xx-large;')
+    .joinRoom(class="slide-in")
+      div
+        h2.text Join via room code
+        input#join(type='text' style='font-size: xx-large; border-radius: 100px; padding: 16px 31px; border: 0; outline: none;')
+    script.
+      document.getElementById("join").addEventListener("keydown", function (e) {
+      if (!e) { var e = window.event; }
+      if (e.keyCode == 13) { window.location.href += "rooms/" + document.getElementById("join").value }
+      });

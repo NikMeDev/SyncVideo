@@ -1,0 +1,14 @@
+doctype html
+html(lang='en')
+  head
+    meta(charset='UTF-8')
+    meta(http-equiv='X-UA-Compatible' content='IE=edge')
+    meta(name='viewport' content='width=device-width, initial-scale=1.0')
+    title SyncVideo
+    link(rel='stylesheet' href='/styles.css' type='text/css')
+    link(rel="icon" type="image/svg+xml" href="/favicon.svg")
+  body(style='background: linear-gradient(45deg, #395ECA, #848BD8);')
+    img.logo(src="/logo.svg" alt="SyncVideo")
+    .newRoom(class="slide-in")
+      form(action='/api/newUser' method='post')
+        input(type='text' name='username' placeholder="Username" style='font-size: xx-large; border-radius: 100px; padding: 16px 31px; border: 0; outline: none;')

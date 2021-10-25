@@ -1,0 +1,46 @@
+html(style='overflow: hidden;')
+  head
+    link(href='https://vjs.zencdn.net/7.10.2/video-js.min.css' rel='stylesheet')
+    script(src='https://vjs.zencdn.net/7.10.2/video.min.js')
+    link(href='https://unpkg.com/@videojs/themes@1/dist/forest/index.css' rel='stylesheet')
+    script(src='https://cdn.socket.io/4.0.1/socket.io.min.js' integrity='sha384-LzhRnpGmQP+lOvWruF/lgkcqD+WDVt9fU3H4BWmwP5u5LTmkUGafMcpZKNObVMLU' crossorigin='anonymous')
+    title SyncVideo
+    link(rel='stylesheet' href='/styles.css' type='text/css')
+    link(rel="icon" type="image/svg+xml" href="/favicon.svg")
+  body(style='background: linear-gradient(45deg, #395ECA, #848BD8);')
+    img.logo(src="/logo.svg" alt="SyncVideo")
+    ul(id="list")
+      each vid in vids
+        - var vidName = vid.name.split("_").join(" ");
+        li(onclick=`changeSrc("${vid.url}")` style="overflow-wrap: break-word;") #{vidName}
+    .view
+      video#syncplayer.video-js.vjs-theme-forest.player(controls='' preload='auto' data-setup='{}')
+    .btnDiv(class="slide-in")
+      a(href=`/upload/${roomId}` style="height: 100%; display: inline-block;")
+        input(type='button' value='Upload' style="cursor:pointer; margin-right: 5px;" class="button")
+      a(href="/exit" style="height: 100%; display: inline-block;")
+        input(type='button' value='Exit' style="cursor:pointer" class="button")
+    script.
+      const roomId = "#{roomId}";
+      const socket = io("#{socketIP}:" + #{socketPort}, {
+      query: {
+      roomUuid: roomId
+      }
+      });
+      var player = videojs('syncplayer');
+      setInterval(() => {
+      socket.emit("hostState", {
+      "src": player.currentSrc(),
+      "paused": player.paused(),
+      "currentTime": player.currentTime()
+      });
+      }, 1000);
+      function changeSrc(path) {
+      player.src({ type: 'video/mp4', src: path });
+      return;
+      }
+      function changeSrcYT(link) {
+      player.src({ type: 'video/youtube', src: link });
+      return;
+      }
+    script(src='/Youtube.min.js')

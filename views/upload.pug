@@ -1,0 +1,45 @@
+doctype html
+html(lang='en')
+  head
+    meta(charset='UTF-8')
+    meta(http-equiv='X-UA-Compatible' content='IE=edge')
+    meta(name='viewport' content='width=device-width, initial-scale=1.0')
+    title SyncVideo
+    link(rel='stylesheet' href='/styles.css' type='text/css')
+    link(rel="icon" type="image/svg+xml" href="/favicon.svg")
+  body(style='background: linear-gradient(45deg, #395ECA, #848BD8);')
+    img.logo(src="/logo.svg" alt="SyncVideo")
+    .newRoom(class="slide-in")
+      h2.field Select file
+      div(style='text-align: center;')
+        form(onsubmit="return false;" action=`/api/upload/${roomId}` id="form" enctype='multipart/form-data' method='post')
+          div(style="margin-bottom: 2%;")
+            label(for="file" class="button") Select file
+            input.file-input(type='file' accept='.mp4, .avi, .mkv' name='videos' multiple='multiple' onchange="send()" id="file")
+        div(id="progress" style="display: none")
+          div(id="bar")
+        a(href="/")
+          button(class="button" id="backBtn") Back
+    script.
+      function send() {
+      var form = document.getElementById("form"),
+      formData = new FormData(form);
+      xhr = new XMLHttpRequest();
+      xhr.upload.onloadstart = (e) => {
+        document.getElementById("progress").style.display = "block";
+        document.getElementById("backBtn").style.display = "none";
+      }
+      xhr.upload.onloadend = (e) => {
+        document.getElementById("progress").style.display = "none";
+        document.getElementById("backBtn").style.display = "inline-block";
+      }
+      xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) {
+      var percent = (e.loaded / e.total) * 100;
+      document.getElementById("bar").style.width = percent + "%";
+      }
+      };
+      xhr.open('post', '/api/upload/' + "#{roomId}", true); 
+      xhr.send(formData);
+      }
+      
