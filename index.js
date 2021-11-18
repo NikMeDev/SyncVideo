@@ -184,14 +184,3 @@ io.on("connection", socket => {
 });
 
 httpServer.listen(SOCKET_PORT);
-
-['SIGHUP', 'SIGINT', 'SIGQUIT', 'SIGKILL', 'SIGTRAP', 'SIGABRT',
-    'SIGBUS', 'SIGFPE', 'SIGUSR1', 'SIGSEGV', 'SIGUSR2', 'SIGTERM'
-].forEach(function(sig) {
-    process.on(sig, function() {
-        logger.info("Deleting folder rooms");
-        fs.rmdirSync('./rooms', { recursive: true });
-        logger.info("Exiting with status:  " + sig);
-        process.exit(sig);
-    });
-});
