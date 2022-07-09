@@ -5,6 +5,8 @@ const formidable = require('formidable');
 const fs = require('fs');
 const pug = require("pug");
 const app = express();
+var path = require('path');
+var ffmpeg = require('fluent-ffmpeg');
 var logger = require("log4js").getLogger();
 logger.level = process.env.LOGGING_LEVEL || "info";
 const IP = process.env.IP || "localhost";
@@ -21,9 +23,9 @@ app.use(require('body-parser').json());
 app.set('views', './views');
 app.set('view engine', 'pug');
 app.use(express.static('public'));
-app.use(function(req, res, next) {
+app.use(function (req, res, next) {
     res.header("Access-Control-Allow-Origin", "*");
-    logger.debug(`User ${req.cookies.username || "unnamed"}(${req.ip}) with UUID ${req.cookies.uuid || "'NONE'"} connected to room ${req.cookies.roomId || "'NONE'"} requested page '${req.originalUrl}'`)
+    logger.debug(`User ${req.cookies.username || "UNNAMED"}(${req.ip}) with UUID ${req.cookies.uuid || "'NONE'"} connected to room ${req.cookies.roomId || "'NONE'"} requested page '${req.originalUrl}'`)
     next();
 });
 
@@ -83,7 +85,7 @@ app.get('/rooms/:roomId/:video', (req, res) => {
     var roomId = req.params.roomId;
     if (req.cookies.roomId != roomId) {
         logger.error(`User ${req.cookies.username || "unnamed"}(${req.ip}) with UUID ${req.cookies.uuid || "'NONE'"} connected to room ${req.cookies.roomId || "'NONE'"} requested '${req.originalUrl}' but has no permission to do so.`)
-        logger.warn("Possible explot of the system.");
+        logger.warn("Possible exploit of the system.");
         res.status(403).send("Error 403: Access denied");
     }
     fs.access(`./rooms/${req.params.roomId}/${req.params.video}`, fs.constants.R_OK, (err) => {
@@ -113,7 +115,7 @@ app.post('/api/upload/:roomId', (req, res, next) => {
         uploadDir: __dirname + '/rooms/' + req.params.roomId,
         keepExtensions: true
     });
-    form.maxFileSize = 4 * 1024 * 1024 * 1024;
+    form.maxFileSize = 16 * 1024 * 1024 * 1024;
     form.parse(req, (err, fields, files) => {
         if (err) {
             next(err);
@@ -121,10 +123,46 @@ app.post('/api/upload/:roomId', (req, res, next) => {
         }
         if (Array.isArray(files.videos)) {
             files.videos.forEach((file) => {
-                fs.rename(file.path, form.uploadDir + "/" + file.name.split(' ').join('_'), (error) => {});
+                var outputPath = form.uploadDir + "/" + file.name.split(' ').join('_');
+                outputPath.substring(0, outputPath.lastIndexOf(".")) + ".mp4";
+                var pathToSourceFile = path.resolve(file.path);
+                var writeStream = fs.createWriteStream(outputPath, (error) => {
+                    logger.debug(error);
+                });
+
+                ffmpeg(pathToSourceFile)
+                    .addOutputOptions('-movflags +frag_keyframe+separate_moof+omit_tfhd_offset+empty_moov')
+                    .format('mp4')
+                    .on('end', function(stdout, stderr) {
+                        fs.unlink(pathToSourceFile, (err) => {
+                            if(err) logger.error(err);
+                            else logger.debug("Deleted " + pathToSourceFile + " successfully");
+                        });
+                      })
+                    .pipe(writeStream)
+
+                //fs.rename(file.path, form.uploadDir + "/" + file.name.split(' ').join('_'), (error) => { });
             });
         } else {
-            fs.rename(files.videos.path, form.uploadDir + "/" + files.videos.name.split(' ').join('_'), (error) => {})
+            var outputPath = form.uploadDir + "/" + files.videos.name.split(' ').join('_');
+            outputPath.substring(0, outputPath.lastIndexOf(".")) + ".mp4";
+            var pathToSourceFile = path.resolve(files.videos.path);
+            var writeStream = fs.createWriteStream(outputPath, (error) => {
+                logger.debug(error);
+            });
+
+            ffmpeg(pathToSourceFile)
+                .addOutputOptions('-movflags +frag_keyframe+separate_moof+omit_tfhd_offset+empty_moov')
+                .format('mp4')
+                .on('end', function(stdout, stderr) {
+                    fs.unlink(pathToSourceFile, (err) => {
+                        if(err) logger.error(err);
+                        else logger.debug("Deleted " + pathToSourceFile + " successfully");
+                    });
+                  })
+                .pipe(writeStream);
+
+            //fs.rename(files.videos.path, form.uploadDir + "/" + files.videos.name.split(' ').join('_'), (error) => { })
         }
     });
     res.redirect("/");
