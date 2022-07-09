@@ -22,7 +22,7 @@ html(style='overflow: hidden;')
         input(type='button' value='Exit' style="cursor:pointer" class="button")
     script.
       const roomId = "#{roomId}";
-      const socket = io("#{socketIP}:" + #{socketPort}, {
+      const socket = io({
       query: {
       roomUuid: roomId
       }

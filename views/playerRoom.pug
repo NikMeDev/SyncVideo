@@ -16,7 +16,7 @@ html
         input.button(type='button' value='Exit' style="cursor:pointer")
     script.
       const roomId = window.location.href.split("/").pop();
-      const socket = io("#{socketIP}:" + #{socketPort}, {
+      const socket = io({
       query: {
       roomUuid: roomId
       }

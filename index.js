@@ -29,6 +29,27 @@ app.use(function (req, res, next) {
     next();
 });
 
+var server = app.listen(PORT, () => {
+    logger.info("Server started http://" + IP + ":" + PORT);
+});
+
+const io =  require("socket.io")(server, {
+    cors: {
+        "origin": "*",
+        "methods": "GET,HEAD,PUT,PATCH,POST,DELETE",
+        "preflightContinue": false,
+        "optionsSuccessStatus": 204
+    }
+});
+
+io.on("connection", socket => {
+    var roomId = socket.handshake.query.roomUuid;
+    socket.join(roomId);
+    socket.on("hostState", (state) => {
+        io.to(roomId).emit("state", state);
+    })
+});
+
 app.get('/', (req, res) => {
     var uuid = req.cookies.uuid;
     if (uuid) {
@@ -133,15 +154,20 @@ app.post('/api/upload/:roomId', (req, res, next) => {
                 ffmpeg(pathToSourceFile)
                     .addOutputOptions('-movflags +frag_keyframe+separate_moof+omit_tfhd_offset+empty_moov')
                     .format('mp4')
+                    .on("start", () => {
+                        io.to(roomId).emit("encodeStart")
+                    })
+                    .on("progress", function(progress) {
+                        io.to(roomId).emit("encodeProgress", progress)
+                    })
                     .on('end', function(stdout, stderr) {
                         fs.unlink(pathToSourceFile, (err) => {
                             if(err) logger.error(err);
                             else logger.debug("Deleted " + pathToSourceFile + " successfully");
                         });
+                        io.to(roomId).emit("encodeEnd")
                       })
                     .pipe(writeStream)
-
-                //fs.rename(file.path, form.uploadDir + "/" + file.name.split(' ').join('_'), (error) => { });
             });
         } else {
             var outputPath = form.uploadDir + "/" + files.videos.name.split(' ').join('_');
@@ -154,15 +180,20 @@ app.post('/api/upload/:roomId', (req, res, next) => {
             ffmpeg(pathToSourceFile)
                 .addOutputOptions('-movflags +frag_keyframe+separate_moof+omit_tfhd_offset+empty_moov')
                 .format('mp4')
+                .on("start", () => {
+                    io.to(roomId).emit("encodeStart")
+                })
+                .on("progress", function(progress) {
+                    io.to(roomId).emit("encodeProgress", progress)
+                })
                 .on('end', function(stdout, stderr) {
                     fs.unlink(pathToSourceFile, (err) => {
                         if(err) logger.error(err);
                         else logger.debug("Deleted " + pathToSourceFile + " successfully");
                     });
+                    io.to(roomId).emit("encodeEnd")
                   })
                 .pipe(writeStream);
-
-            //fs.rename(files.videos.path, form.uploadDir + "/" + files.videos.name.split(' ').join('_'), (error) => { })
         }
     });
     res.redirect("/");
@@ -198,27 +229,3 @@ app.post('/api/newRoom', (req, res) => {
     }, 4 * 3600000)
     res.redirect('/rooms/' + roomId);
 });
-
-var server = app.listen(PORT, () => {
-    logger.info("Server started http://" + IP + ":" + PORT);
-});
-
-const httpServer = require("http").createServer();
-const io = require("socket.io")(httpServer, {
-    cors: {
-        "origin": "*",
-        "methods": "GET,HEAD,PUT,PATCH,POST,DELETE",
-        "preflightContinue": false,
-        "optionsSuccessStatus": 204
-    }
-});
-
-io.on("connection", socket => {
-    var roomId = socket.handshake.query.roomUuid;
-    socket.join(roomId);
-    socket.on("hostState", (state) => {
-        io.to(roomId).emit("state", state);
-    })
-});
-
-httpServer.listen(SOCKET_PORT);

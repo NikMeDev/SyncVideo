@@ -7,6 +7,7 @@ html(lang='en')
     title SyncVideo
     link(rel='stylesheet' href='/styles.css' type='text/css')
     link(rel="icon" type="image/svg+xml" href="/favicon.svg")
+    script(src='https://cdn.socket.io/4.0.1/socket.io.min.js' integrity='sha384-LzhRnpGmQP+lOvWruF/lgkcqD+WDVt9fU3H4BWmwP5u5LTmkUGafMcpZKNObVMLU' crossorigin='anonymous')
   body(style='background: linear-gradient(45deg, #395ECA, #848BD8);')
     img.logo(src="/logo.svg" alt="SyncVideo")
     .newRoom(class="slide-in")
@@ -18,20 +19,48 @@ html(lang='en')
             input.file-input(type='file' accept='.mp4, .avi, .mkv' name='videos' multiple='multiple' onchange="send()" id="file")
         div(id="progress" style="display: none")
           div(id="bar")
+        div(id="encodeProgress" style="display: none")
+          div(id="encodeBar")
         a(href="/")
           button(class="button" id="backBtn") Back
+        h2(id="progressText" style="display: none; color: white")
     script.
+      const roomId = "#{roomId}";
+      const socket = io({
+      query: {
+      roomUuid: roomId
+      }
+      });
+      socket.on("encodeProgress", (progress) => {
+        console.log(progress);
+        document.getElementById("progress").style.display = "block";
+        document.getElementById("encodeProgress").style.display = "block";
+        document.getElementById("progressText").style.display = "block";
+        document.getElementById("backBtn").style.display = "none";
+        document.getElementById("encodeBar").style.width = progress.percent + "%";
+        document.getElementById("progressText").innerHTML = `${progress.currentFps} fps, ${progress.currentKbps} Kb/s, 
+        ${progress.frames} frames, ${progress.timemark}`
+      })
+      socket.on("encodeStart", () => {
+        document.getElementById("progress").style.display = "block";
+        document.getElementById("encodeProgress").style.display = "block";
+        document.getElementById("progressText").style.display = "block";
+        document.getElementById("backBtn").style.display = "none";
+      })
+      socket.on("encodeEnd", () => {
+        document.getElementById("progress").style.display = "none";
+        document.getElementById("encodeProgress").style.display = "none";
+        document.getElementById("progressText").style.display = "none";
+        document.getElementById("backBtn").style.display = "inline-block";
+      })
       function send() {
       var form = document.getElementById("form"),
       formData = new FormData(form);
       xhr = new XMLHttpRequest();
       xhr.upload.onloadstart = (e) => {
         document.getElementById("progress").style.display = "block";
+        document.getElementById("encodeProgress").style.display = "block";
         document.getElementById("backBtn").style.display = "none";
-      }
-      xhr.upload.onloadend = (e) => {
-        document.getElementById("progress").style.display = "none";
-        document.getElementById("backBtn").style.display = "inline-block";
       }
       xhr.upload.onprogress = (e) => {
       if (e.lengthComputable) {
@@ -42,4 +71,6 @@ html(lang='en')
       xhr.open('post', '/api/upload/' + "#{roomId}", true); 
       xhr.send(formData);
       }
+
+
       
