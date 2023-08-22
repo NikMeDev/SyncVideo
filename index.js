@@ -11,8 +11,6 @@ var logger = require("log4js").getLogger();
 logger.level = process.env.LOGGING_LEVEL || "info";
 const IP = process.env.IP || "localhost";
 const PORT = process.env.PORT || 3000;
-const SOCKET_IP = process.env.SOCKET_IP || "localhost";
-const SOCKET_PORT = process.env.SOCKET_PORT || 3001;
 var rooms = {};
 
 app.use(require('cookie-parser')());
@@ -30,10 +28,10 @@ app.use(function (req, res, next) {
 });
 
 var server = app.listen(PORT, () => {
-    logger.info("Server started http://" + IP + ":" + PORT);
+    logger.info("Server started http://" + IP);
 });
 
-const io =  require("socket.io")(server, {
+const io = require("socket.io")(server, {
     cors: {
         "origin": "*",
         "methods": "GET,HEAD,PUT,PATCH,POST,DELETE",
@@ -86,16 +84,11 @@ app.get('/rooms/:roomId', (req, res) => {
             });
             logger.debug("Rendering host room with videos: " + vids);
             res.render("hostPlayerRoom", {
-                socketIP: SOCKET_IP,
-                socketPort: SOCKET_PORT,
                 roomId: roomId,
                 vids: vids
             });
         } else {
-            res.render("playerRoom", {
-                socketIP: SOCKET_IP,
-                socketPort: SOCKET_PORT
-            });
+            res.render("playerRoom", {});
         }
     } else {
         res.send("Invalid Room");
@@ -157,16 +150,16 @@ app.post('/api/upload/:roomId', (req, res, next) => {
                     .on("start", () => {
                         io.to(roomId).emit("encodeStart")
                     })
-                    .on("progress", function(progress) {
+                    .on("progress", function (progress) {
                         io.to(roomId).emit("encodeProgress", progress)
                     })
-                    .on('end', function(stdout, stderr) {
+                    .on('end', function (stdout, stderr) {
                         fs.unlink(pathToSourceFile, (err) => {
-                            if(err) logger.error(err);
+                            if (err) logger.error(err);
                             else logger.debug("Deleted " + pathToSourceFile + " successfully");
                         });
                         io.to(roomId).emit("encodeEnd")
-                      })
+                    })
                     .pipe(writeStream)
             });
         } else {
@@ -183,16 +176,16 @@ app.post('/api/upload/:roomId', (req, res, next) => {
                 .on("start", () => {
                     io.to(roomId).emit("encodeStart")
                 })
-                .on("progress", function(progress) {
+                .on("progress", function (progress) {
                     io.to(roomId).emit("encodeProgress", progress)
                 })
-                .on('end', function(stdout, stderr) {
+                .on('end', function (stdout, stderr) {
                     fs.unlink(pathToSourceFile, (err) => {
-                        if(err) logger.error(err);
+                        if (err) logger.error(err);
                         else logger.debug("Deleted " + pathToSourceFile + " successfully");
                     });
                     io.to(roomId).emit("encodeEnd")
-                  })
+                })
                 .pipe(writeStream);
         }
     });
